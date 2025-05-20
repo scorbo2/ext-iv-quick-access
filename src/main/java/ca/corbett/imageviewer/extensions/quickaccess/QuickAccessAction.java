@@ -33,5 +33,4 @@ public class QuickAccessAction extends AbstractAction {
 
         owner.setNode(selectedNode);
     }
-
 }

@@ -65,6 +65,9 @@ public class QuickAccessExtension extends ImageViewerExtension {
         return list;
     }
 
+    /**
+     * I *think* this is the only use of getQuickMoveDialogsActions in any IV extension so far.
+     */
     @Override
     public List<AbstractAction> getQuickMoveDialogActions() {
         List<AbstractAction> list = new ArrayList<>();
