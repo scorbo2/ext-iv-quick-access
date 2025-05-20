@@ -18,9 +18,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Provides a way to take one or more QuickMoveTreeNode instances and turn them
@@ -33,16 +31,12 @@ import java.util.Map;
  */
 public final class QuickAccessPanel extends JPanel {
 
-    private final Map<QuickMoveManager.TreeNode, List<Component>> componentMap;
-
     public QuickAccessPanel() {
         this.setBorder(null);
         setLayout(new GridBagLayout());
-        componentMap = new HashMap<>();
     }
 
     public void setNode(QuickMoveManager.TreeNode node) {
-        componentMap.clear();
         removeAll();
         GridBagConstraints gbc = new GridBagConstraints();
         processNode(node, gbc);
@@ -56,12 +50,10 @@ public final class QuickAccessPanel extends JPanel {
 
     private void processNode(QuickMoveManager.TreeNode node, GridBagConstraints gbc) {
         List<Component> componentList = new ArrayList<>();
-        componentMap.put(node, componentList);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.BOTH;
         final JLabel headerLabel = new JLabel(node.getLabel());
         componentList = new ArrayList<>();
-        componentMap.put(node, componentList);
         componentList.add(headerLabel);
         headerLabel.setOpaque(true);
         headerLabel.setBackground(Color.BLACK);
@@ -98,7 +90,6 @@ public final class QuickAccessPanel extends JPanel {
                 }
                 refreshUI();
             }
-
         });
         gbc.insets = new Insets(0, 8, 0, 24);
         gbc.ipadx = 20;
@@ -111,7 +102,6 @@ public final class QuickAccessPanel extends JPanel {
                 processNode((QuickMoveManager.TreeNode)node.getChildAt(i), gbc);
             }
         }
-
     }
 
     private Component addLinkButton(QuickMoveManager.TreeNode node, GridBagConstraints gbc) {
