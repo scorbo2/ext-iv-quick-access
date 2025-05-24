@@ -1,10 +1,9 @@
 {
   "name": "Quick Access",
   "author": "steve@corbett.ca",
-  "version": "1.0",
+  "version": "2.1.0",
   "targetAppName": "ImageViewer",
   "targetAppVersion": "2.1",
   "shortDescription": "Provides a panel of quick move options.",
-  "longDescription": "Accessed through the Quick Move setup dialog, this extension allows you to select a particular quick move node to be displayed as buttons to the left or right of the main image panel, for very easy access.",
-  "releaseNotes": "1.0 - extracted from ImageViewer 1.3"
+  "longDescription": "Accessed through the Quick Move setup dialog, this extension allows you to select a particular quick move node to be displayed as buttons to the left or right of the main image panel, for very easy access."
 }
