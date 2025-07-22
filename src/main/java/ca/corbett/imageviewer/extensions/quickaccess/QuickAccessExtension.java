@@ -27,7 +27,6 @@ import java.util.List;
  */
 public class QuickAccessExtension extends ImageViewerExtension {
 
-    private static final String[] validPositions = {"Left", "Right"};
     private static final String extInfoLocation = "/ca/corbett/imageviewer/extensions/quickaccess/extInfo.json";
     private static final String positionPropName = "UI.Quick Access.position";
     private static final String warningPropName = "UI.Quick Access.warningLabel";
@@ -58,10 +57,10 @@ public class QuickAccessExtension extends ImageViewerExtension {
     }
 
     @Override
-    public List<AbstractProperty> getConfigProperties() {
+    protected List<AbstractProperty> createConfigProperties() {
         List<AbstractProperty> list = new ArrayList<>();
         list.add(new LabelProperty(warningPropName, "Note: restart is required to change panel position."));
-        list.add(new ComboProperty(positionPropName, "Panel position:", Arrays.asList(validPositions),0, false));
+        list.add(new ComboProperty(positionPropName, "Panel position:", List.of("Left", "Right"),0, false));
         return list;
     }
 
