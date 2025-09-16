@@ -14,7 +14,6 @@ import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -60,7 +59,7 @@ public class QuickAccessExtension extends ImageViewerExtension {
     protected List<AbstractProperty> createConfigProperties() {
         List<AbstractProperty> list = new ArrayList<>();
         list.add(new LabelProperty(warningPropName, "Note: restart is required to change panel position."));
-        list.add(new ComboProperty(positionPropName, "Panel position:", List.of("Left", "Right"),0, false));
+        list.add(new ComboProperty<>(positionPropName, "Panel position:", List.of("Left", "Right"),0, false));
         return list;
     }
 
@@ -76,7 +75,8 @@ public class QuickAccessExtension extends ImageViewerExtension {
 
     @Override
     public JComponent getExtraPanelComponent(ExtraPanelPosition position) {
-        ComboProperty positionProp = (ComboProperty)AppConfig.getInstance().getPropertiesManager().getProperty(positionPropName);
+        //noinspection unchecked
+        ComboProperty<String> positionProp = (ComboProperty<String>)AppConfig.getInstance().getPropertiesManager().getProperty(positionPropName);
 
         ExtraPanelPosition configPosition;
         if (positionProp.getSelectedIndex() == 0) {
