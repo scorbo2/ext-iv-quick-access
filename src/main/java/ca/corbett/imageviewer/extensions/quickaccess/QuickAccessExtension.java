@@ -7,6 +7,7 @@ import ca.corbett.extensions.AppExtensionInfo;
 import ca.corbett.extras.properties.AbstractProperty;
 import ca.corbett.extras.properties.ComboProperty;
 import ca.corbett.extras.properties.LabelProperty;
+import ca.corbett.imageviewer.ui.MainWindow;
 
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
@@ -30,6 +31,8 @@ public class QuickAccessExtension extends ImageViewerExtension {
     private static final String positionPropName = "UI.Quick Access.position";
     private static final String warningPropName = "UI.Quick Access.warningLabel";
 
+    private JScrollPane quickAccessScrollPane;
+    private QuickAccessPanel quickAccessPanel;
     private final List<QuickAccessPanel> quickAccessPanels;
     private final AppExtensionInfo extInfo;
     private QuickMoveManager.TreeNode currentNode;
@@ -86,7 +89,7 @@ public class QuickAccessExtension extends ImageViewerExtension {
             configPosition = ExtraPanelPosition.Right;
         }
         if (position == configPosition) {
-            QuickAccessPanel quickAccessPanel = new QuickAccessPanel();
+            quickAccessPanel = new QuickAccessPanel();
 
             // Set current state if we've received any up to this point:
             if (currentNode != null) {
@@ -98,7 +101,7 @@ public class QuickAccessExtension extends ImageViewerExtension {
             quickAccessPanels.add(quickAccessPanel);
 
             // Create a scroll pane for it:
-            JScrollPane quickAccessScrollPane = new JScrollPane(quickAccessPanel);
+            quickAccessScrollPane = new JScrollPane(quickAccessPanel);
             quickAccessScrollPane.setBorder(null);
             quickAccessScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
             quickAccessScrollPane.getVerticalScrollBar().setUnitIncrement(20);
@@ -115,4 +118,10 @@ public class QuickAccessExtension extends ImageViewerExtension {
         }
     }
 
+    @Override
+    public void browseModeChanged(MainWindow.BrowseMode newBrowseMode) {
+        if (quickAccessScrollPane != null && quickAccessPanel != null && quickAccessPanel.getComponentCount() > 0) {
+            quickAccessScrollPane.setVisible(newBrowseMode == MainWindow.BrowseMode.FILE_SYSTEM);
+        }
+    }
 }
