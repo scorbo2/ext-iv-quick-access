@@ -61,7 +61,6 @@ public class QuickAccessExtension extends ImageViewerExtension {
     @Override
     protected List<AbstractProperty> createConfigProperties() {
         List<AbstractProperty> list = new ArrayList<>();
-        list.add(new LabelProperty(warningPropName, "Note: restart is required to change panel position."));
         list.add(new ComboProperty<>(positionPropName, "Panel position:", List.of("Left", "Right"),0, false));
         return list;
     }

@@ -1,7 +1,7 @@
 {
   "name": "Quick Access",
   "author": "steve@corbett.ca",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "targetAppName": "ImageViewer",
   "targetAppVersion": "2.2",
   "shortDescription": "Provides a panel of quick move options.",
