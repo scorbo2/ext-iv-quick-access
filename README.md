@@ -19,7 +19,7 @@ maven package
 Now you can copy the extension jar to wherever you keep your imageviewer extensions:
 
 ```shell
-cp target/ext-iv-quick-access-2.2.2.jar ~/.ImageViewer/extensions/
+cp target/ext-iv-quick-access-2.3.0.jar ~/.ImageViewer/extensions/
 ```
 
 Now restart imageviewer and you should find a "Quick Access" button on the Quick Move
@@ -45,7 +45,7 @@ you can create whatever hierarchy makes sense, regardless of how the file system
 
 ### Requirements
 
-ImageViewer 2.2 or higher.
+ImageViewer 2.3 or higher.
 
 ### License
 
