@@ -59,6 +59,10 @@ public class QuickAccessExtension extends ImageViewerExtension {
     }
 
     @Override
+    public void loadJarResources() {
+    }
+
+    @Override
     protected List<AbstractProperty> createConfigProperties() {
         List<AbstractProperty> list = new ArrayList<>();
         list.add(new ComboProperty<>(positionPropName, "Panel position:", List.of("Left", "Right"),0, false));
