@@ -22,8 +22,8 @@ left, and hit the "Uninstall" button in the top right. The application will prom
 
 ### Option 2: manual download and install:
 
-You can manually download the extension jar: 
-[ext-iv-quick-access-2.3.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/2.3/ext-iv-quick-access-2.3.0.jar)
+You can manually download the extension jar:
+[ext-iv-quick-access-3.0.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/3.0/ext-iv-quick-access-3.0.0.jar)
 
 Save it to your ~/.ImageViewer/extensions directory and restart the application.
 
@@ -37,7 +37,7 @@ cd ext-iv-quick-access
 maven package
 
 # Copy the result to extensions directory:
-cp target/ext-iv-quick-access-2.3.0.jar ~/.ImageViewer/extensions/
+cp target/ext-iv-quick-access-3.0.0.jar ~/.ImageViewer/extensions/
 ```
 
 ## Okay, it's installed, now how do I use it?
@@ -65,8 +65,8 @@ you can create whatever hierarchy makes sense, regardless of how the file system
 
 ## Requirements
 
-ImageViewer 2.3 or higher.
+Compatible with any ImageViewer 3.x release.
 
 ## License
 
-Imageviewer and this extension are made available under the MIT license: https://opensource.org/license/mit
+ImageViewer and this extension are made available under the MIT license: https://opensource.org/license/mit
