@@ -141,6 +141,12 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
             }
             quickAccessPanel.setBackground(AppConfig.getInstance().getImagePanelBackgroundColor());
             quickAccessPanels.add(quickAccessPanel);
+
+            // Maybe a wonky case, but if we're currently in image set mode, then
+            // we want to start with the panel NOT visible. It will be made visible
+            // if and when the user switches back to filesystem mode.
+            setQuickAccessVisibility(quickAccessPanel, MainWindow.getInstance().getBrowseMode());
+
             return quickAccessPanel;
         }
         return null;
