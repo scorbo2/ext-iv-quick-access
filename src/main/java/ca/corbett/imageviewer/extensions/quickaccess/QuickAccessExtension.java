@@ -1,42 +1,53 @@
 package ca.corbett.imageviewer.extensions.quickaccess;
 
-import ca.corbett.imageviewer.AppConfig;
-import ca.corbett.imageviewer.QuickMoveManager;
-import ca.corbett.imageviewer.extensions.ImageViewerExtension;
 import ca.corbett.extensions.AppExtensionInfo;
 import ca.corbett.extras.properties.AbstractProperty;
 import ca.corbett.extras.properties.ComboProperty;
-import ca.corbett.extras.properties.LabelProperty;
+import ca.corbett.imageviewer.AppConfig;
+import ca.corbett.imageviewer.QuickMoveManager;
+import ca.corbett.imageviewer.extensions.ImageViewerExtension;
 import ca.corbett.imageviewer.ui.MainWindow;
+import ca.corbett.imageviewer.ui.UIReloadable;
+import ca.corbett.imageviewer.ui.actions.ReloadUIAction;
 
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
-import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * An extension to ImageViewer that allows a panel of quick-access buttons to be placed to
- * the left or to the right of an ImagePanel, to provide very quick access to quick move
- * options for a given quick move tree node. The obvious use of this extension is for
- * the ImagePanel on the main window, but it also works well with the full screen extension.
+ * the left or to the right of an ImagePanel. Each button represents a single quick-move destination,
+ * and clicking it will immediately move the current image to that destination. This is a very
+ * convenient shorthand for commonly-used destinations, and can be customized to show only
+ * certain selected destinations, grouped and organized as desired.
+ * <p>
+ *     This extension is compatible with the FullScreenExtension! Even in fullscreen mode,
+ *     you will have access to the quick access panel, if it is defined and enabled.
+ * </p>
  *
- * @author scorbo2
+ * @author <a href="https://github.com/scorbo2">scorbo2</a>
  */
-public class QuickAccessExtension extends ImageViewerExtension {
+public class QuickAccessExtension extends ImageViewerExtension implements UIReloadable {
+
+    private static final Logger log = Logger.getLogger(QuickAccessExtension.class.getName());
 
     private static final String extInfoLocation = "/ca/corbett/imageviewer/extensions/quickaccess/extInfo.json";
-    private static final String positionPropName = "UI.Quick Access.position";
-    private static final String warningPropName = "UI.Quick Access.warningLabel";
+    private static final String positionPropName = "Quick Move.Quick Access Extension.position";
 
-    private JScrollPane quickAccessScrollPane;
-    private QuickAccessPanel quickAccessPanel;
+    /**
+     * We can't have a single QuickAccessPanel, because we may legitimately be asked to create more
+     * than one. For example, one on the main window, then another one in the fullscreen extension.
+     * (Or in some other extension that hasn't been written yet.) So we need to keep track of all
+     * the panels we've created, so we can update them all when needed. This unfortunately means
+     * that we keep a reference to ever panel we've ever created, but we don't get notified when
+     * one is no longer needed, so it is what it is.
+     */
     private final List<QuickAccessPanel> quickAccessPanels;
+
     private final AppExtensionInfo extInfo;
     private QuickMoveManager.TreeNode currentNode;
-    private Color currentBgColor;
 
     public QuickAccessExtension() {
         extInfo = AppExtensionInfo.fromExtensionJar(getClass(), extInfoLocation);
@@ -46,6 +57,10 @@ public class QuickAccessExtension extends ImageViewerExtension {
         quickAccessPanels = new ArrayList<>();
     }
 
+    /**
+     * Discards any previous node, and sets the given node as the current one. This will
+     * update all existing QuickAccessPanels created by this extension so far.
+     */
     public void setNode(QuickMoveManager.TreeNode selectedNode) {
         currentNode = selectedNode;
         for (QuickAccessPanel panel : quickAccessPanels) {
@@ -63,10 +78,26 @@ public class QuickAccessExtension extends ImageViewerExtension {
     }
 
     @Override
+    public void onActivate() {
+        ReloadUIAction.getInstance().registerReloadable(this);
+    }
+
+    @Override
+    public void onDeactivate() {
+        ReloadUIAction.getInstance().unregisterReloadable(this);
+    }
+
+    @Override
     protected List<AbstractProperty> createConfigProperties() {
-        List<AbstractProperty> list = new ArrayList<>();
-        list.add(new ComboProperty<>(positionPropName, "Panel position:", List.of("Left", "Right"),0, false));
-        return list;
+        return List.of(
+            // We can't use EnumProperty because we don't support all enum options...
+            // we only support Left and Right. So, use String-based combo instead.
+            new ComboProperty<>(positionPropName,
+                                "Panel position:",
+                                List.of("Left", "Right"),
+                                0,
+                                false)
+        );
     }
 
     /**
@@ -74,57 +105,80 @@ public class QuickAccessExtension extends ImageViewerExtension {
      */
     @Override
     public List<AbstractAction> getQuickMoveDialogActions() {
-        List<AbstractAction> list = new ArrayList<>();
-        list.add(new QuickAccessAction(this));
-        return list;
+        return List.of(new QuickAccessAction(this));
     }
 
+    /**
+     * Invoked by the parent application when it's building out an image panel and wants to know
+     * if any extension has additional panels to go around that image panel.
+     * In our case, our quick access panel can be configured to go to the left or to the right
+     * of the image panel.
+     */
     @Override
     public JComponent getExtraPanelComponent(ExtraPanelPosition position) {
-        //noinspection unchecked
-        ComboProperty<String> positionProp = (ComboProperty<String>)AppConfig.getInstance().getPropertiesManager().getProperty(positionPropName);
+        // It shouldn't happen that our property will ever fail to return from AppConfig,
+        // but let's guard against it anyway:
+        AbstractProperty prop = AppConfig.getInstance().getPropertiesManager().getProperty(positionPropName);
+        if (!(prop instanceof ComboProperty<?> positionProp)) {
+            log.warning("QuickAccessExtension: configuration property '"
+                            + positionPropName
+                            + "' is missing or of wrong type.");
+            return null;
+        }
 
-        ExtraPanelPosition configPosition;
-        if (positionProp.getSelectedIndex() == 0) {
-            configPosition = ExtraPanelPosition.Left;
-        }
-        else {
-            configPosition = ExtraPanelPosition.Right;
-        }
+        // Our combo only supports two options:
+        ExtraPanelPosition configPosition = positionProp.getSelectedIndex() == 0 ?
+            ExtraPanelPosition.Left :
+            ExtraPanelPosition.Right;
+
+        // If this is our configured position, then create and return a QuickAccessPanel:
         if (position == configPosition) {
-            quickAccessPanel = new QuickAccessPanel();
+            QuickAccessPanel quickAccessPanel = new QuickAccessPanel();
 
             // Set current state if we've received any up to this point:
             if (currentNode != null) {
                 quickAccessPanel.setNode(currentNode);
             }
-            if (currentBgColor != null) {
-                quickAccessPanel.setBackground(currentBgColor);
-            }
+            quickAccessPanel.setBackground(AppConfig.getInstance().getImagePanelBackgroundColor());
             quickAccessPanels.add(quickAccessPanel);
-
-            // Create a scroll pane for it:
-            quickAccessScrollPane = new JScrollPane(quickAccessPanel);
-            quickAccessScrollPane.setBorder(null);
-            quickAccessScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-            quickAccessScrollPane.getVerticalScrollBar().setUnitIncrement(20);
-            return quickAccessScrollPane;
+            return quickAccessPanel;
         }
         return null;
     }
 
+    /**
+     * We only want our quick access panels visible when we're NOT in image set mode.
+     */
     @Override
-    public void imagePanelBackgroundChanged(Color newColor) {
-        currentBgColor = newColor;
+    public void browseModeChanged(MainWindow.BrowseMode newBrowseMode) {
         for (QuickAccessPanel quickAccessPanel : quickAccessPanels) {
-            quickAccessPanel.setBackground(currentBgColor);
+            setQuickAccessVisibility(quickAccessPanel, newBrowseMode);
         }
     }
 
+    /**
+     * Sets visibility of the given quick access panel according to the given browse mode.
+     * Also, we don't show the panel if it has no content.
+     */
+    private void setQuickAccessVisibility(QuickAccessPanel panel, MainWindow.BrowseMode browseMode) {
+        if (panel == null) {
+            return;
+        }
+
+        // If we're in image set mode, then hide the quick access panel:
+        if (browseMode == MainWindow.BrowseMode.IMAGE_SET) {
+            panel.setVisible(false);
+            return;
+        }
+
+        // Otherwise, only show it if it has content:
+        panel.setVisible(panel.getComponentCount() > 0);
+    }
+
     @Override
-    public void browseModeChanged(MainWindow.BrowseMode newBrowseMode) {
-        if (quickAccessScrollPane != null && quickAccessPanel != null && quickAccessPanel.getComponentCount() > 0) {
-            quickAccessScrollPane.setVisible(newBrowseMode == MainWindow.BrowseMode.FILE_SYSTEM);
+    public void reloadUI() {
+        for (QuickAccessPanel quickAccessPanel : quickAccessPanels) {
+            quickAccessPanel.setBackground(AppConfig.getInstance().getImagePanelBackgroundColor());
         }
     }
 }
