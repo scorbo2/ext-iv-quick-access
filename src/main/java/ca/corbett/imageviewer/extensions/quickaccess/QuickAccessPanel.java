@@ -7,7 +7,9 @@ import ca.corbett.imageviewer.ui.MainWindow;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -26,50 +28,78 @@ import java.util.List;
  * one side of an ImagePanel. This is meant as a super quick alternative to using
  * the JPopupMenu provided by the ImagePanel.
  *
- * @author scorbo2
+ * @author <a href="https://github.com/scorbo2">scorbo2</a>
  * @since ImageViewer 1.1
  */
 public final class QuickAccessPanel extends JPanel {
 
+    private final JPanel wrapperPanel;
+
+    /**
+     * Creates a new, empty QuickAccessPanel.
+     */
     public QuickAccessPanel() {
         this.setBorder(null);
-        setLayout(new GridBagLayout());
+
+        wrapperPanel = new JPanel(new GridBagLayout());
+        JScrollPane scrollPane = new JScrollPane(wrapperPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
+
+        setLayout(new BorderLayout());
+        add(scrollPane, BorderLayout.CENTER);
     }
 
+    /**
+     * Indicates if this panel has any content.
+     */
+    public boolean hasContent() {
+        return wrapperPanel.getComponentCount() > 0;
+    }
+
+    /**
+     * Discards any existing contents of this panel, and populates it
+     * with buttons representing the given node and its children.
+     */
     public void setNode(QuickMoveManager.TreeNode node) {
-        removeAll();
+        wrapperPanel.removeAll();
         GridBagConstraints gbc = new GridBagConstraints();
         processNode(node, gbc);
         gbc.gridy++;
-        gbc.weighty = 1;
+        gbc.weighty = 1; // Force all above contents to the top
         JLabel spacer = new JLabel("");
-        add(spacer, gbc);
+        wrapperPanel.add(spacer, gbc);
 
         refreshUI();
     }
 
+    /**
+     * Invoked recursively to process a node and its children.
+     * The idea is that each node becomes a section header, and its
+     * children become buttons below it. If a node has no children,
+     * it simply becomes a button itself. This logic is complicated,
+     * but the configuration options are pretty powerful when you
+     * know how to set it up.
+     */
     private void processNode(QuickMoveManager.TreeNode node, GridBagConstraints gbc) {
         List<Component> componentList = new ArrayList<>();
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.BOTH;
-        final JLabel headerLabel = new JLabel(node.getLabel());
-        componentList = new ArrayList<>();
+        final JLabel headerLabel = buildHeaderLabel(node.getLabel());
         componentList.add(headerLabel);
-        headerLabel.setOpaque(true);
-        headerLabel.setBackground(Color.BLACK);
-        headerLabel.setForeground(Color.WHITE);
-        headerLabel.setFont(headerLabel.getFont().deriveFont(Font.BOLD, 14f));
-        headerLabel.setPreferredSize(new Dimension(200, 30));
-        headerLabel.setMaximumSize(new Dimension(220, 30));
         gbc.insets = new Insets(12, 8, 0, 24);
         gbc.ipadx = 0;
         gbc.gridy++;
-        add(headerLabel, gbc);
+        wrapperPanel.add(headerLabel, gbc);
 
+        // If there are no children, add this node as a link button:
         if (node.getChildCount() == 0) {
             componentList.add(addLinkButton(node, gbc));
         }
 
+        // But if there are children, go through the list, and
+        // for each child that has no children, add it as a link button:
         for (int i = 0; i < node.getChildCount(); i++) {
             QuickMoveManager.TreeNode childNode = (QuickMoveManager.TreeNode)node.getChildAt(i);
             if (childNode.getChildCount() == 0) {
@@ -77,25 +107,15 @@ public final class QuickAccessPanel extends JPanel {
             }
         }
 
-        JButton button = new JButton("Remove group");
-        componentList.add(button);
-        button.setPreferredSize(new Dimension(200, 23));
-        button.setMaximumSize(new Dimension(220, 23));
-        final List<Component> theList = componentList;
-        button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                for (Component c : theList) {
-                    remove(c);
-                }
-                refreshUI();
-            }
-        });
+        // Add a button that can be used to remove this entire section:
+        JButton button = buildRemoveButton(componentList);
         gbc.insets = new Insets(0, 8, 0, 24);
         gbc.ipadx = 20;
         gbc.gridy++;
-        add(button, gbc);
+        wrapperPanel.add(button, gbc);
 
+        // Finally, go through all children again, and for each child that has children,
+        // process it recursively using this same method:
         for (int i = 0; i < node.getChildCount(); i++) {
             QuickMoveManager.TreeNode childNode = (QuickMoveManager.TreeNode)node.getChildAt(i);
             if (childNode.getChildCount() > 0) {
@@ -104,6 +124,45 @@ public final class QuickAccessPanel extends JPanel {
         }
     }
 
+    /**
+     * Builds a section header label.
+     */
+    private JLabel buildHeaderLabel(String text) {
+        JLabel headerLabel = new JLabel(text);
+        headerLabel.setOpaque(true);
+        headerLabel.setBackground(Color.BLACK); // hard-coded colors, sigh...
+        headerLabel.setForeground(Color.WHITE); // this will be fixed when swing-issues #330 is addressed
+        headerLabel.setFont(headerLabel.getFont().deriveFont(Font.BOLD, 14f));
+        headerLabel.setPreferredSize(new Dimension(200, 30));
+        headerLabel.setMaximumSize(new Dimension(220, 30));
+        return headerLabel;
+    }
+
+    /**
+     * Builds and returns a button that can be used to remove all the
+     * listed components from the panel.
+     */
+    private JButton buildRemoveButton(List<Component> componentsToRemove) {
+        JButton button = new JButton("Remove group");
+        componentsToRemove.add(button);
+        button.setPreferredSize(new Dimension(200, 23));
+        button.setMaximumSize(new Dimension(220, 23));
+        button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                for (Component comp : componentsToRemove) {
+                    wrapperPanel.remove(comp);
+                }
+                refreshUI();
+            }
+        });
+        return button;
+    }
+
+    /**
+     * Adds a link button for the given node. Clicking the button will invoke
+     * an immediate move operation in ImageOperationHandler.
+     */
     private Component addLinkButton(QuickMoveManager.TreeNode node, GridBagConstraints gbc) {
         JButton button = new JButton(node.getLabel());
         button.setPreferredSize(new Dimension(200, 23));
@@ -112,19 +171,14 @@ public final class QuickAccessPanel extends JPanel {
         gbc.insets = new Insets(0, 8, 0, 24);
         gbc.ipadx = 20;
         gbc.gridy++;
-        add(button, gbc);
+        wrapperPanel.add(button, gbc);
         return button;
     }
 
     private void refreshUI() {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                invalidate();
-                revalidate();
-                repaint();
-                MainWindow.getInstance().redrawImagePanel();
-            }
-        });
+        wrapperPanel.invalidate();
+        wrapperPanel.revalidate();
+        wrapperPanel.repaint();
+        MainWindow.getInstance().redrawImagePanel();
     }
 }
