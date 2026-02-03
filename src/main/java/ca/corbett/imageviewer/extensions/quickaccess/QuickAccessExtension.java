@@ -41,7 +41,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
      * than one. For example, one on the main window, then another one in the fullscreen extension.
      * (Or in some other extension that hasn't been written yet.) So we need to keep track of all
      * the panels we've created, so we can update them all when needed. This unfortunately means
-     * that we keep a reference to ever panel we've ever created, but we don't get notified when
+     * that we keep a reference to every panel we've ever created, but we don't get notified when
      * one is no longer needed, so it is what it is.
      */
     private final List<QuickAccessPanel> quickAccessPanels;
@@ -172,7 +172,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
         }
 
         // Otherwise, only show it if it has content:
-        panel.setVisible(panel.getComponentCount() > 0);
+        panel.setVisible(panel.hasContent());
     }
 
     @Override

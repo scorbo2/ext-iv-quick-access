@@ -52,6 +52,13 @@ public final class QuickAccessPanel extends JPanel {
     }
 
     /**
+     * Indicates if this panel has any content.
+     */
+    public boolean hasContent() {
+        return wrapperPanel.getComponentCount() > 0;
+    }
+
+    /**
      * Discards any existing contents of this panel, and populates it
      * with buttons representing the given node and its children.
      */
