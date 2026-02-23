@@ -139,7 +139,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
             if (currentNode != null) {
                 quickAccessPanel.setNode(currentNode);
             }
-            quickAccessPanel.setBackground(AppConfig.getInstance().getImagePanelBackgroundColor());
+            quickAccessPanel.setBackground(AppConfig.getInstance().getDefaultBackground());
             quickAccessPanels.add(quickAccessPanel);
 
             // Maybe a wonky case, but if we're currently in image set mode, then
@@ -186,7 +186,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
     @Override
     public void reloadUI() {
         for (QuickAccessPanel quickAccessPanel : quickAccessPanels) {
-            quickAccessPanel.setBackground(AppConfig.getInstance().getImagePanelBackgroundColor());
+            quickAccessPanel.setBackground(AppConfig.getInstance().getDefaultBackground());
         }
     }
 }
