@@ -17,7 +17,7 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 
 /**
- * Provides a way to take one or more QuickMoveTreeNode instances and turn them
+ * Provides a way to take one or more QuickMoveManager.TreeNode instances and turn them
  * into buttons arranged vertically in one quick-access panel, which can then be stuck to
  * one side of an ImagePanel. This is meant as a super quick alternative to using
  * the JPopupMenu provided by the ImagePanel.
