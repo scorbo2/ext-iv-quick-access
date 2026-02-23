@@ -146,7 +146,8 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
             // we want to start with the panel NOT visible. It will be made visible
             // if and when the user switches back to filesystem mode.
             if (MainWindow.getInstance().getBrowseMode() == MainWindow.BrowseMode.IMAGE_SET) {
-                quickAccessPanel.setVisible(false); // don't use setQuickAccessVisibility here... panel may be empty
+                quickAccessPanel.getActionPanel()
+                                .setVisible(false); // don't use setQuickAccessVisibility here... panel may be empty
             }
 
             return quickAccessPanel;
@@ -175,12 +176,12 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
 
         // If we're in image set mode, then hide the quick access panel:
         if (browseMode == MainWindow.BrowseMode.IMAGE_SET) {
-            panel.setVisible(false);
+            panel.getActionPanel().setVisible(false);
             return;
         }
 
         // Otherwise, only show it if it has content:
-        panel.setVisible(panel.hasContent());
+        panel.getActionPanel().setVisible(panel.hasContent());
     }
 
     @Override
