@@ -40,6 +40,7 @@ public final class QuickAccessPanel extends JPanel {
      */
     public QuickAccessPanel() {
         this.setBorder(null);
+        this.setName("Quick Access"); // in case our component gets added to a JTabbedPane.
 
         wrapperPanel = new JPanel(new GridBagLayout());
         JScrollPane scrollPane = new JScrollPane(wrapperPanel);
