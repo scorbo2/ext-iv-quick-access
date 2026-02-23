@@ -170,9 +170,6 @@ public final class QuickAccessPanel extends JPanel {
             if (label.isBlank()) {
                 throw new IllegalArgumentException("label cannot be blank");
             }
-            if (!targetDir.exists() || !targetDir.isDirectory() || !targetDir.canWrite()) {
-                throw new IllegalArgumentException("targetDir must be an existing, writable directory");
-            }
             this.targetDir = targetDir;
         }
 
