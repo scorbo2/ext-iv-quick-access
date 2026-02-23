@@ -58,6 +58,9 @@ public final class QuickAccessPanel extends JPanel {
      * with buttons representing the given node and its children.
      */
     public void setNode(QuickMoveManager.TreeNode node) {
+        if (node == null) {
+            throw new IllegalArgumentException("node cannot be null");
+        }
         actionPanel.setAutoRebuildEnabled(false);
         try {
             actionPanel.clear(true);
