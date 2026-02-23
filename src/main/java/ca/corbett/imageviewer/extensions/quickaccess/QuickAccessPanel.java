@@ -100,7 +100,7 @@ public final class QuickAccessPanel extends JPanel {
         for (int i = 0; i < node.getChildCount(); i++) {
             QuickMoveManager.TreeNode childNode = (QuickMoveManager.TreeNode)node.getChildAt(i);
             if (childNode.getChildCount() > 0) {
-                processNode((QuickMoveManager.TreeNode)node.getChildAt(i));
+                processNode(childNode);
             }
         }
     }
