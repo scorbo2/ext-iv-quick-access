@@ -1,26 +1,20 @@
 package ca.corbett.imageviewer.extensions.quickaccess;
 
+import ca.corbett.extras.EnhancedAction;
+import ca.corbett.extras.ScrollUtil;
+import ca.corbett.extras.actionpanel.ActionComponentType;
+import ca.corbett.extras.actionpanel.ActionPanel;
+import ca.corbett.extras.actionpanel.ColorOptions;
+import ca.corbett.extras.actionpanel.ColorTheme;
+import ca.corbett.imageviewer.AppConfig;
 import ca.corbett.imageviewer.ImageOperationHandler;
 import ca.corbett.imageviewer.QuickMoveManager;
 import ca.corbett.imageviewer.ui.MainWindow;
 
-import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
 
 /**
  * Provides a way to take one or more QuickMoveTreeNode instances and turn them
@@ -33,7 +27,7 @@ import java.util.List;
  */
 public final class QuickAccessPanel extends JPanel {
 
-    private final JPanel wrapperPanel;
+    private final ActionPanel actionPanel;
 
     /**
      * Creates a new, empty QuickAccessPanel.
@@ -41,22 +35,22 @@ public final class QuickAccessPanel extends JPanel {
     public QuickAccessPanel() {
         this.setBorder(null);
         this.setName("Quick Access"); // in case our component gets added to a JTabbedPane.
+        setBackground(AppConfig.getInstance().getDefaultBackground());
 
-        wrapperPanel = new JPanel(new GridBagLayout());
-        JScrollPane scrollPane = new JScrollPane(wrapperPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(20);
-
+        actionPanel = buildActionPanel();
         setLayout(new BorderLayout());
-        add(scrollPane, BorderLayout.CENTER);
+        add(ScrollUtil.buildScrollPane(actionPanel), BorderLayout.CENTER);
+    }
+
+    public ActionPanel getActionPanel() {
+        return actionPanel;
     }
 
     /**
      * Indicates if this panel has any content.
      */
     public boolean hasContent() {
-        return wrapperPanel.getComponentCount() > 0;
+        return actionPanel.getGroupCount() > 0;
     }
 
     /**
@@ -64,14 +58,15 @@ public final class QuickAccessPanel extends JPanel {
      * with buttons representing the given node and its children.
      */
     public void setNode(QuickMoveManager.TreeNode node) {
-        wrapperPanel.removeAll();
-        GridBagConstraints gbc = new GridBagConstraints();
-        processNode(node, gbc);
-        gbc.gridy++;
-        gbc.weighty = 1; // Force all above contents to the top
-        JLabel spacer = new JLabel("");
-        wrapperPanel.add(spacer, gbc);
-
+        actionPanel.setAutoRebuildEnabled(false);
+        try {
+            actionPanel.clear(true);
+            processNode(node);
+        }
+        finally {
+            // Setting this back to true will trigger an immediate rebuild:
+            actionPanel.setAutoRebuildEnabled(true);
+        }
         refreshUI();
     }
 
@@ -83,20 +78,12 @@ public final class QuickAccessPanel extends JPanel {
      * but the configuration options are pretty powerful when you
      * know how to set it up.
      */
-    private void processNode(QuickMoveManager.TreeNode node, GridBagConstraints gbc) {
-        List<Component> componentList = new ArrayList<>();
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.fill = GridBagConstraints.BOTH;
-        final JLabel headerLabel = buildHeaderLabel(node.getLabel());
-        componentList.add(headerLabel);
-        gbc.insets = new Insets(12, 8, 0, 24);
-        gbc.ipadx = 0;
-        gbc.gridy++;
-        wrapperPanel.add(headerLabel, gbc);
+    private void processNode(QuickMoveManager.TreeNode node) {
+        final String label = node.getLabel();
 
-        // If there are no children, add this node as a link button:
+        // If there are no children, add this node as a group with itself as the only action:
         if (node.getChildCount() == 0) {
-            componentList.add(addLinkButton(node, gbc));
+            actionPanel.add(label, new MoveAction(label, node.getDirectory()));
         }
 
         // But if there are children, go through the list, and
@@ -104,82 +91,94 @@ public final class QuickAccessPanel extends JPanel {
         for (int i = 0; i < node.getChildCount(); i++) {
             QuickMoveManager.TreeNode childNode = (QuickMoveManager.TreeNode)node.getChildAt(i);
             if (childNode.getChildCount() == 0) {
-                componentList.add(addLinkButton(childNode, gbc));
+                actionPanel.add(label, new MoveAction(childNode.getLabel(), childNode.getDirectory()));
             }
         }
 
-        // Add a button that can be used to remove this entire section:
-        JButton button = buildRemoveButton(componentList);
-        gbc.insets = new Insets(0, 8, 0, 24);
-        gbc.ipadx = 20;
-        gbc.gridy++;
-        wrapperPanel.add(button, gbc);
-
-        // Finally, go through all children again, and for each child that has children,
+        // Finally, go through all children again, and for each child that DOES have children,
         // process it recursively using this same method:
         for (int i = 0; i < node.getChildCount(); i++) {
             QuickMoveManager.TreeNode childNode = (QuickMoveManager.TreeNode)node.getChildAt(i);
             if (childNode.getChildCount() > 0) {
-                processNode((QuickMoveManager.TreeNode)node.getChildAt(i), gbc);
+                processNode((QuickMoveManager.TreeNode)node.getChildAt(i));
             }
         }
     }
 
     /**
-     * Builds a section header label.
+     * Invoked internally to build an ActionPanel and configure it for our use.
      */
-    private JLabel buildHeaderLabel(String text) {
-        JLabel headerLabel = new JLabel(text);
-        headerLabel.setOpaque(true);
-        headerLabel.setBackground(Color.BLACK); // hard-coded colors, sigh...
-        headerLabel.setForeground(Color.WHITE); // this will be fixed when swing-issues #330 is addressed
-        headerLabel.setFont(headerLabel.getFont().deriveFont(Font.BOLD, 14f));
-        headerLabel.setPreferredSize(new Dimension(200, 30));
-        headerLabel.setMaximumSize(new Dimension(220, 30));
-        return headerLabel;
+    private ActionPanel buildActionPanel() {
+        final int iconSize = 18;
+        ActionPanel panel = new ActionPanel();
+        panel.setHeaderIconSize(iconSize);
+        panel.getToolBarOptions().setIconSize(iconSize);
+        panel.setActionComponentType(ActionComponentType.BUTTONS);
+        panel.getActionTrayMargins().setAll(0); // no gaps between anything, no margins either
+        panel.getToolBarMargins().setAll(0); // This should be redundant in Stretch mode.
+        panel.setButtonPadding(4); // Give the buttons just a bit more padding than the default 2 pixels.
+        panel.setToolBarEnabled(true);
+        panel.getToolBarOptions().setAllowItemAdd(false);
+        panel.getToolBarOptions().setAllowGroupRename(false);
+        panel.getToolBarOptions().setAllowItemRemoval(false);
+        panel.getToolBarOptions().setAllowItemReorder(false);
+        panel.getToolBarOptions().setAllowGroupRemoval(true);
+        panel.getExpandCollapseOptions().setAllowHeaderDoubleClick(true); // convenient!
+
+        // Set custom color theme if user has picked one in AppConfig:
+        // (otherwise, we'll let the Look and Feel decide all the colors)
+        ColorTheme colorTheme = AppConfig.getInstance().getActionPanelTheme();
+        if (colorTheme != null) {
+            panel.getColorOptions().setFromTheme(colorTheme);
+
+            // Tweak it just a little - I want the action tray background to be the same as
+            // the panel background. Otherwise, it looks odd with our action buttons:
+            ColorOptions options = panel.getColorOptions();
+            options.setActionBackground(AppConfig.getInstance().getDefaultBackground());
+            options.setToolBarButtonBackground(options.getActionButtonBackground());
+        }
+        else {
+            panel.getColorOptions().useSystemDefaults();
+        }
+
+        return panel;
     }
 
     /**
-     * Builds and returns a button that can be used to remove all the
-     * listed components from the panel.
+     * Forces a refresh of this panel and the ImagePanel, to ensure that any changes are reflected immediately.
      */
-    private JButton buildRemoveButton(List<Component> componentsToRemove) {
-        JButton button = new JButton("Remove group");
-        componentsToRemove.add(button);
-        button.setPreferredSize(new Dimension(200, 23));
-        button.setMaximumSize(new Dimension(220, 23));
-        button.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                for (Component comp : componentsToRemove) {
-                    wrapperPanel.remove(comp);
-                }
-                refreshUI();
-            }
-        });
-        return button;
-    }
-
-    /**
-     * Adds a link button for the given node. Clicking the button will invoke
-     * an immediate move operation in ImageOperationHandler.
-     */
-    private Component addLinkButton(QuickMoveManager.TreeNode node, GridBagConstraints gbc) {
-        JButton button = new JButton(node.getLabel());
-        button.setPreferredSize(new Dimension(200, 23));
-        button.setMaximumSize(new Dimension(220, 23));
-        button.addActionListener(e -> ImageOperationHandler.moveImage(node.getDirectory()));
-        gbc.insets = new Insets(0, 8, 0, 24);
-        gbc.ipadx = 20;
-        gbc.gridy++;
-        wrapperPanel.add(button, gbc);
-        return button;
-    }
-
     private void refreshUI() {
-        wrapperPanel.invalidate();
-        wrapperPanel.revalidate();
-        wrapperPanel.repaint();
+        invalidate();
+        revalidate();
+        repaint();
         MainWindow.getInstance().redrawImagePanel();
+    }
+
+    /**
+     * A simple action to execute a move operation to the given target directory.
+     * This is used by the action buttons in the panel.
+     */
+    private static class MoveAction extends EnhancedAction {
+
+        private final File targetDir;
+
+        private MoveAction(String label, File targetDir) {
+            super(label);
+            if (label == null || targetDir == null) {
+                throw new IllegalArgumentException("label and targetDir cannot be null");
+            }
+            if (label.isBlank()) {
+                throw new IllegalArgumentException("label cannot be blank");
+            }
+            if (!targetDir.exists() || !targetDir.isDirectory() || !targetDir.canWrite()) {
+                throw new IllegalArgumentException("targetDir must be an existing, writable directory");
+            }
+            this.targetDir = targetDir;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            ImageOperationHandler.moveImage(targetDir);
+        }
     }
 }
