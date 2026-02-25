@@ -36,6 +36,8 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
     private static final String extInfoLocation = "/ca/corbett/imageviewer/extensions/quickaccess/extInfo.json";
     private static final String positionPropName = "Quick Move.Quick Access Extension.position";
 
+    private static final String WRONG_MODE_WARNING = "Not available\nin ImageSet mode.";
+
     /**
      * We can't have a single QuickAccessPanel, because we may legitimately be asked to create more
      * than one. For example, one on the main window, then another one in the fullscreen extension.
@@ -60,9 +62,30 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
     /**
      * Discards any previous node, and sets the given node as the current one. This will
      * update all existing QuickAccessPanels created by this extension so far.
+     * <p>
+     *     Passing null to this method will trigger a UI reload, so that we can
+     *     remove our panel (since we no longer have content).
+     * </p>
      */
     public void setNode(QuickMoveManager.TreeNode selectedNode) {
         currentNode = selectedNode;
+
+        if (currentNode == null) {
+            // Nuke our panels list so it doesn't grow unbounded:
+            quickAccessPanels.clear();
+
+            // If we have no content, trigger a UI reload so that any existing panels will be removed:
+            ReloadUIAction.getInstance().actionPerformed(null);
+            return;
+        }
+
+        // If our panels list is empty, we need to trigger a UI reload to populate a new one:
+        if (quickAccessPanels.isEmpty()) {
+            ReloadUIAction.getInstance().actionPerformed(null);
+            return;
+        }
+
+        // Otherwise, we can just update our existing panels with this new content:
         for (QuickAccessPanel panel : quickAccessPanels) {
             panel.setNode(currentNode);
         }
@@ -113,9 +136,23 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
      * if any extension has additional panels to go around that image panel.
      * In our case, our quick access panel can be configured to go to the left or to the right
      * of the image panel.
+     * <p>
+     *     <b>Note:</b> Even if quick access is enabled in user prefs, we may still return null
+     *     here if we have no content! Enabling it an application preferences is basically
+     *     the equivalent of saying "show it if the user has selected any quick access destinations."
+     *     The user can populate and show our panel in the configured position by going to
+     *     the "configure quick move destinations" dialog, picking a node, and selecting
+     *     the "Quick Access" button.
+     * </p>
      */
     @Override
     public JComponent getExtraPanelComponent(ExtraPanelPosition position) {
+        // If we have no content, return nothing:
+        // User must visit "configure quick move destinations" dialog and select something.
+        if (currentNode == null) {
+            return null;
+        }
+
         // It shouldn't happen that our property will ever fail to return from AppConfig,
         // but let's guard against it anyway:
         AbstractProperty prop = AppConfig.getInstance().getPropertiesManager().getProperty(positionPropName);
@@ -133,21 +170,16 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
 
         // If this is our configured position, then create and return a QuickAccessPanel:
         if (position == configPosition) {
-            QuickAccessPanel quickAccessPanel = new QuickAccessPanel();
+            QuickAccessPanel quickAccessPanel = new QuickAccessPanel(this);
 
             // Set current state if we've received any up to this point:
-            if (currentNode != null) {
-                quickAccessPanel.setNode(currentNode);
-            }
+            quickAccessPanel.setNode(currentNode);
             quickAccessPanel.setBackground(AppConfig.getInstance().getDefaultBackground());
             quickAccessPanels.add(quickAccessPanel);
 
-            // Maybe a wonky case, but if we're currently in image set mode, then
-            // we want to start with the panel NOT visible. It will be made visible
-            // if and when the user switches back to filesystem mode.
+            // This panel is only valid in filesystem mode:
             if (MainWindow.getInstance().getBrowseMode() == MainWindow.BrowseMode.IMAGE_SET) {
-                quickAccessPanel.getActionPanel()
-                                .setVisible(false); // don't use setQuickAccessVisibility here... panel may be empty
+                quickAccessPanel.blur(WRONG_MODE_WARNING);
             }
 
             return quickAccessPanel;
@@ -156,38 +188,40 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
     }
 
     /**
-     * We only want our quick access panels visible when we're NOT in image set mode.
+     * We only want our quick access panels accessible when we're NOT in image set mode.
      */
     @Override
     public void browseModeChanged(MainWindow.BrowseMode newBrowseMode) {
         for (QuickAccessPanel quickAccessPanel : quickAccessPanels) {
-            setQuickAccessVisibility(quickAccessPanel, newBrowseMode);
+            setQuickAccessAccessibility(quickAccessPanel, newBrowseMode);
         }
     }
 
     /**
-     * Sets visibility of the given quick access panel according to the given browse mode.
-     * Also, we don't show the panel if it has no content.
+     * Sets accessibility of the given quick access panel according to the given browse mode.
      */
-    private void setQuickAccessVisibility(QuickAccessPanel panel, MainWindow.BrowseMode browseMode) {
+    private void setQuickAccessAccessibility(QuickAccessPanel panel, MainWindow.BrowseMode browseMode) {
         if (panel == null) {
             return;
         }
 
-        // If we're in image set mode, then hide the quick access panel:
+        // If we're in image set mode, then blur the quick access panel:
         if (browseMode == MainWindow.BrowseMode.IMAGE_SET) {
-            panel.getActionPanel().setVisible(false);
+            panel.blur(WRONG_MODE_WARNING);
             return;
         }
 
-        // Otherwise, only show it if it has content:
-        panel.getActionPanel().setVisible(panel.hasContent());
+        // Otherwise, unblur it (this is safe to invoke even it if wasn't already blurred):
+        panel.unblur();
     }
 
+    /**
+     * Overridden here so we can respond to changes in the application's look and feel.
+     */
     @Override
     public void reloadUI() {
         for (QuickAccessPanel quickAccessPanel : quickAccessPanels) {
-            quickAccessPanel.setBackground(AppConfig.getInstance().getDefaultBackground());
+            quickAccessPanel.setActionPanelColors();
         }
     }
 }
