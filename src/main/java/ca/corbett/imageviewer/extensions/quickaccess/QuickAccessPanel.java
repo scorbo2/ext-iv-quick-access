@@ -15,6 +15,7 @@ import ca.corbett.imageviewer.ui.MainWindow;
 import javax.swing.JLayer;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
@@ -33,6 +34,7 @@ public final class QuickAccessPanel extends JPanel {
 
     private final BlurLayerUI blurLayerUI;
     private final ActionPanel actionPanel;
+    private final JScrollPane scrollPane;
     private final QuickAccessExtension extension;
 
     /**
@@ -44,10 +46,11 @@ public final class QuickAccessPanel extends JPanel {
         this.setName("Quick Access"); // in case our component gets added to a JTabbedPane.
         blurLayerUI = new BlurLayerUI();
         actionPanel = buildActionPanel();
+        scrollPane = ScrollUtil.buildScrollPane(new JLayer<>(actionPanel, blurLayerUI));
         setActionPanelColors();
-        JLayer<JPanel> layeredPanel = new JLayer<>(actionPanel, blurLayerUI);
+
         setLayout(new BorderLayout());
-        add(ScrollUtil.buildScrollPane(layeredPanel), BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER);
     }
 
     public ActionPanel getActionPanel() {
@@ -76,6 +79,7 @@ public final class QuickAccessPanel extends JPanel {
         blurLayerUI.setOverlayText(blurMessage);
         blurLayerUI.setOverlayTextColor(Color.RED);
         blurLayerUI.setBlurIntensity(BlurLayerUI.BlurIntensity.STRONG);
+        blurLayerUI.setBlurOverlayColor(Color.DARK_GRAY);
         blurLayerUI.setBlurred(true);
         invalidate();
         revalidate();
@@ -128,7 +132,9 @@ public final class QuickAccessPanel extends JPanel {
      */
     public void setActionPanelColors() {
         setBackground(AppConfig.getInstance().getDefaultBackground());
-        
+        scrollPane.getViewport().setBackground(AppConfig.getInstance().getDefaultBackground());
+        scrollPane.getViewport().setOpaque(true);
+
         // Set custom color theme if user has picked one in AppConfig:
         // (otherwise, we'll let the Look and Feel decide all the colors)
         ColorTheme colorTheme = AppConfig.getInstance().getActionPanelTheme();

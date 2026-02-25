@@ -174,7 +174,6 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
 
             // Set current state if we've received any up to this point:
             quickAccessPanel.setNode(currentNode);
-            quickAccessPanel.setBackground(AppConfig.getInstance().getDefaultBackground());
             quickAccessPanels.add(quickAccessPanel);
 
             // This panel is only valid in filesystem mode:
