@@ -6,13 +6,17 @@ import ca.corbett.extras.actionpanel.ActionComponentType;
 import ca.corbett.extras.actionpanel.ActionPanel;
 import ca.corbett.extras.actionpanel.ColorOptions;
 import ca.corbett.extras.actionpanel.ColorTheme;
+import ca.corbett.extras.image.animation.BlurLayerUI;
 import ca.corbett.imageviewer.AppConfig;
 import ca.corbett.imageviewer.ImageOperationHandler;
 import ca.corbett.imageviewer.QuickMoveManager;
 import ca.corbett.imageviewer.ui.MainWindow;
 
+import javax.swing.JLayer;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.io.File;
 
@@ -27,23 +31,67 @@ import java.io.File;
  */
 public final class QuickAccessPanel extends JPanel {
 
+    private final BlurLayerUI blurLayerUI;
     private final ActionPanel actionPanel;
+    private final QuickAccessExtension extension;
 
     /**
      * Creates a new, empty QuickAccessPanel.
      */
-    public QuickAccessPanel() {
+    public QuickAccessPanel(QuickAccessExtension extension) {
+        this.extension = extension;
         this.setBorder(null);
         this.setName("Quick Access"); // in case our component gets added to a JTabbedPane.
-        setBackground(AppConfig.getInstance().getDefaultBackground());
-
+        blurLayerUI = new BlurLayerUI();
         actionPanel = buildActionPanel();
+        setActionPanelColors();
+        JLayer<JPanel> layeredPanel = new JLayer<>(actionPanel, blurLayerUI);
         setLayout(new BorderLayout());
-        add(ScrollUtil.buildScrollPane(actionPanel), BorderLayout.CENTER);
+        add(ScrollUtil.buildScrollPane(layeredPanel), BorderLayout.CENTER);
     }
 
     public ActionPanel getActionPanel() {
         return actionPanel;
+    }
+
+    /**
+     * Reports whether this panel is currently blurred. If so, no interactivity
+     * is possible until unblur() is invoked.
+     *
+     * @return true if this panel is currently blurred, false otherwise.
+     */
+    public boolean isBlurred() {
+        return blurLayerUI.isBlurred();
+    }
+
+    /**
+     * If the quick access panel is not valid for the current state (for example,
+     * if we are in ImageSet mode), then you can blur out the contents of the
+     * panel and display an optional message to the user. The panel is not interactive
+     * while in blurred mode.
+     *
+     * @param blurMessage An optional message to overlay on the blurred panel. Can be null or blank for no message.
+     */
+    public void blur(String blurMessage) {
+        blurLayerUI.setOverlayText(blurMessage);
+        blurLayerUI.setOverlayTextColor(Color.RED);
+        blurLayerUI.setBlurIntensity(BlurLayerUI.BlurIntensity.STRONG);
+        blurLayerUI.setBlurred(true);
+        invalidate();
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * If the panel is currently blurred, this will unblur it and remove whatever text overlay
+     * was being shown. The panel will once again be interactive after this method is called.
+     * If the panel was not blurred, this method does nothing.
+     */
+    public void unblur() {
+        blurLayerUI.setBlurred(false);
+        invalidate();
+        revalidate();
+        repaint();
     }
 
     /**
@@ -71,6 +119,31 @@ public final class QuickAccessPanel extends JPanel {
             actionPanel.setAutoRebuildEnabled(true);
         }
         refreshUI();
+    }
+
+    /**
+     * Updates the colors of this panel according to the current AppConfig settings. This should be invoked
+     * whenever the user changes their color theme in the settings, to ensure that the quick access panel
+     * matches the rest of the UI.
+     */
+    public void setActionPanelColors() {
+        setBackground(AppConfig.getInstance().getDefaultBackground());
+        
+        // Set custom color theme if user has picked one in AppConfig:
+        // (otherwise, we'll let the Look and Feel decide all the colors)
+        ColorTheme colorTheme = AppConfig.getInstance().getActionPanelTheme();
+        if (colorTheme != null) {
+            actionPanel.getColorOptions().setFromTheme(colorTheme);
+
+            // Tweak it just a little - I want the action tray background to be the same as
+            // the panel background. Otherwise, it looks odd with our action buttons:
+            ColorOptions options = actionPanel.getColorOptions();
+            options.setActionBackground(AppConfig.getInstance().getDefaultBackground());
+            options.setToolBarButtonBackground(options.getActionButtonBackground());
+        }
+        else {
+            actionPanel.getColorOptions().useSystemDefaults();
+        }
     }
 
     /**
@@ -126,25 +199,35 @@ public final class QuickAccessPanel extends JPanel {
         panel.getToolBarOptions().setAllowItemRemoval(false);
         panel.getToolBarOptions().setAllowItemReorder(false);
         panel.getToolBarOptions().setAllowGroupRemoval(true);
+        panel.addGroupRemovedListener((a, g) -> removeGroup());
         panel.getExpandCollapseOptions().setAllowHeaderDoubleClick(true); // convenient!
 
-        // Set custom color theme if user has picked one in AppConfig:
-        // (otherwise, we'll let the Look and Feel decide all the colors)
-        ColorTheme colorTheme = AppConfig.getInstance().getActionPanelTheme();
-        if (colorTheme != null) {
-            panel.getColorOptions().setFromTheme(colorTheme);
-
-            // Tweak it just a little - I want the action tray background to be the same as
-            // the panel background. Otherwise, it looks odd with our action buttons:
-            ColorOptions options = panel.getColorOptions();
-            options.setActionBackground(AppConfig.getInstance().getDefaultBackground());
-            options.setToolBarButtonBackground(options.getActionButtonBackground());
-        }
-        else {
-            panel.getColorOptions().useSystemDefaults();
-        }
-
         return panel;
+    }
+
+    /**
+     * Invoked from our ActionPanel to let us know that a group was removed.
+     * Generally, we don't care, as the ActionPanel handles the actual removal for us.
+     * But, if all groups have been removed, then we trigger a UI reload to get
+     * rid of our now-empty panel. The user can re-enable it by going back
+     * to the "configure quick move destinations" dialog and picking some new nodes to show.
+     */
+    private void removeGroup() {
+        if (actionPanel.getGroupCount() == 0) {
+            // Note: it would be nice to show a confirmation prompt before removing the last
+            //       group, but we don't receive this notification until AFTER the group
+            //       has already been removed. Still, we can at least show a little prompt
+            //       telling the user what we're doing and how they can undo it.
+            JOptionPane.showMessageDialog(MainWindow.getInstance(),
+                                          "All quick access destinations have been removed. " +
+                                              "The quick access panel will now be hidden.\n\n"
+                                              + "To show the quick access panel again, go to the " +
+                                              "'Configure quick move destinations' dialog and select " +
+                                              "some nodes to show.",
+                                          "Quick access panel hidden",
+                                          JOptionPane.INFORMATION_MESSAGE);
+            extension.setNode(null); // the extension can handle the logic of triggering the reload
+        }
     }
 
     /**
