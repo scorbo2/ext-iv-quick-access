@@ -138,7 +138,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
      * of the image panel.
      * <p>
      *     <b>Note:</b> Even if quick access is enabled in user prefs, we may still return null
-     *     here if we have no content! Enabling it an application preferences is basically
+     *     here if we have no content! Enabling it in application preferences is basically
      *     the equivalent of saying "show it if the user has selected any quick access destinations."
      *     The user can populate and show our panel in the configured position by going to
      *     the "configure quick move destinations" dialog, picking a node, and selecting
@@ -211,7 +211,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
             return;
         }
 
-        // Otherwise, unblur it (this is safe to invoke even it if wasn't already blurred):
+        // Otherwise, unblur it (this is safe to invoke even if it wasn't already blurred):
         panel.unblur();
     }
 

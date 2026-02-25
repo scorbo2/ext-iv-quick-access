@@ -43,7 +43,6 @@ public final class QuickAccessPanel extends JPanel {
         this.setBorder(null);
         this.setName("Quick Access"); // in case our component gets added to a JTabbedPane.
         blurLayerUI = new BlurLayerUI();
-        setBackground(AppConfig.getInstance().getDefaultBackground());
         actionPanel = buildActionPanel();
         setActionPanelColors();
         JLayer<JPanel> layeredPanel = new JLayer<>(actionPanel, blurLayerUI);
@@ -128,6 +127,8 @@ public final class QuickAccessPanel extends JPanel {
      * matches the rest of the UI.
      */
     public void setActionPanelColors() {
+        setBackground(AppConfig.getInstance().getDefaultBackground());
+        
         // Set custom color theme if user has picked one in AppConfig:
         // (otherwise, we'll let the Look and Feel decide all the colors)
         ColorTheme colorTheme = AppConfig.getInstance().getActionPanelTheme();
