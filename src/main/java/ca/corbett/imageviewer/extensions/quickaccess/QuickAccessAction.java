@@ -1,10 +1,10 @@
 package ca.corbett.imageviewer.extensions.quickaccess;
 
+import ca.corbett.extras.EnhancedAction;
 import ca.corbett.imageviewer.QuickMoveManager;
 import ca.corbett.imageviewer.ui.MainWindow;
 import ca.corbett.imageviewer.ui.dialogs.QuickMoveDialog;
 
-import javax.swing.AbstractAction;
 import java.awt.event.ActionEvent;
 
 /**
@@ -12,14 +12,15 @@ import java.awt.event.ActionEvent;
  * node and populate it into the QuickAccessPanel(s) that have been created by
  * this extension so far.
  *
- * @author scorbo2
+ * @author <a href="https://github.com/scorbo2">scorbo2</a>
  */
-public class QuickAccessAction extends AbstractAction {
+public class QuickAccessAction extends EnhancedAction {
 
+    private static final String NAME = "Quick Access";
     private final QuickAccessExtension owner;
 
     public QuickAccessAction(QuickAccessExtension owner) {
-        super("Quick Access");
+        super(NAME);
         this.owner = owner;
     }
 
@@ -27,7 +28,7 @@ public class QuickAccessAction extends AbstractAction {
     public void actionPerformed(ActionEvent e) {
         QuickMoveManager.TreeNode selectedNode = QuickMoveDialog.getSelectedNode();
         if (selectedNode == null) {
-            MainWindow.getInstance().showMessageDialog("Quick Access", "Nothing selected.");
+            MainWindow.getInstance().showMessageDialog(NAME, "Nothing selected.");
             return;
         }
 
