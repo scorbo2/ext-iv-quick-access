@@ -43,8 +43,8 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
      * than one. For example, one on the main window, then another one in the fullscreen extension.
      * (Or in some other extension that hasn't been written yet.) So we need to keep track of all
      * the panels we've created, so we can update them all when needed. This unfortunately means
-     * that we keep a reference to every panel we've ever created, but we don't get notified when
-     * one is no longer needed, so it is what it is.
+     * that we keep a reference to every panel we've ever created. Worse, we don't get notified when
+     * one is no longer needed, so we can't properly clean these up until we are deactivated.
      */
     private final List<QuickAccessPanel> quickAccessPanels;
 
@@ -70,22 +70,26 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
     public void setNode(QuickMoveManager.TreeNode selectedNode) {
         currentNode = selectedNode;
 
+        // Passing null to this method is perfectly valid.
+        // It means that we should clear all of our content.
         if (currentNode == null) {
-            // Nuke our panels list so it doesn't grow unbounded:
-            quickAccessPanels.clear();
+            handlePanelCleanup();
 
-            // If we have no content, trigger a UI reload so that any existing panels will be removed:
+            // Now that we have no content, trigger a UI reload so that any existing panels will be removed:
             ReloadUIAction.getInstance().actionPerformed(null);
             return;
         }
 
-        // If our panels list is empty, we need to trigger a UI reload to populate a new one:
+        // If we had no content, but we were just given a non-null node, then
+        // we need to trigger a UI reload to pick up the new content:
         if (quickAccessPanels.isEmpty()) {
             ReloadUIAction.getInstance().actionPerformed(null);
             return;
         }
 
-        // Otherwise, we can just update our existing panels with this new content:
+        // If we get here, it means we already had content, and we've just been
+        // given new, non-null content. In that case, we can just update our
+        // existing panels without needing to trigger a full UI reload:
         for (QuickAccessPanel panel : quickAccessPanels) {
             panel.setNode(currentNode);
         }
@@ -98,6 +102,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
 
     @Override
     public void loadJarResources() {
+        // Nothing to load here.
     }
 
     @Override
@@ -108,6 +113,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
     @Override
     public void onDeactivate() {
         ReloadUIAction.getInstance().unregisterReloadable(this);
+        handlePanelCleanup();
     }
 
     @Override
@@ -198,6 +204,8 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
 
     /**
      * Sets accessibility of the given quick access panel according to the given browse mode.
+     * If we're in the wrong mode, we'll use the BlurLayerUI from swing-extras to blur the entire
+     * panel, and put a text overlay on top of it explaining why it's unavailable.
      */
     private void setQuickAccessAccessibility(QuickAccessPanel panel, MainWindow.BrowseMode browseMode) {
         if (panel == null) {
@@ -221,6 +229,17 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
     public void reloadUI() {
         for (QuickAccessPanel quickAccessPanel : quickAccessPanels) {
             quickAccessPanel.setActionPanelColors();
+            quickAccessPanel.applyLafWorkaround(); // user may have changed color scheme
         }
+    }
+
+    /**
+     * Invoked internally to properly clean our list of quick access panels.
+     */
+    private void handlePanelCleanup() {
+        for (QuickAccessPanel panel : quickAccessPanels) {
+            panel.dispose();
+        }
+        quickAccessPanels.clear();
     }
 }
