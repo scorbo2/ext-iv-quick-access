@@ -216,11 +216,13 @@ public final class QuickAccessPanel extends JPanel {
 
     /**
      * Invoked recursively to process a node and its children.
-     * The idea is that each node becomes a section header, and its
-     * children become buttons below it. If a node has no children,
-     * it simply becomes a button itself. This logic is complicated,
-     * but the configuration options are pretty powerful when you
-     * know how to set it up.
+     * Leaf nodes (nodes with no children) become individual buttons.
+     * For a non-leaf node, any direct children that are leaves become
+     * buttons grouped under a section headed by this node's label.
+     * Children that are themselves non-leaf nodes are processed
+     * recursively, and if all children are non-leaf then no explicit
+     * section is created for the current node (that level is effectively
+     * flattened in the UI).
      */
     private void processNode(QuickMoveManager.TreeNode node) {
         final String label = node.getLabel();
