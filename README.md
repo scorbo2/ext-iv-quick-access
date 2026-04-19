@@ -23,7 +23,7 @@ left, and hit the "Uninstall" button in the top right. The application will prom
 ### Option 2: manual download and install:
 
 You can manually download the extension jar:
-[ext-iv-quick-access-3.2.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/3.0/ext-iv-quick-access-3.2.0.jar)
+[ext-iv-quick-access-3.2.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/3.2/ext-iv-quick-access-3.2.0.jar)
 
 Save it to your ~/.ImageViewer/extensions directory and restart the application.
 
