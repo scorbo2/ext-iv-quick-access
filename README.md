@@ -23,7 +23,7 @@ left, and hit the "Uninstall" button in the top right. The application will prom
 ### Option 2: manual download and install:
 
 You can manually download the extension jar:
-[ext-iv-quick-access-3.1.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/3.0/ext-iv-quick-access-3.1.0.jar)
+[ext-iv-quick-access-3.2.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/3.0/ext-iv-quick-access-3.2.0.jar)
 
 Save it to your ~/.ImageViewer/extensions directory and restart the application.
 
@@ -34,10 +34,12 @@ You can clone this repo and build the extension jar with Maven (Java 17 or highe
 ```shell
 git clone https://github.com/scorbo2/ext-iv-quick-access.git
 cd ext-iv-quick-access
-maven package
+
+# Note: you must have run `mvn install` in the main ImageViewer repo first, as that is a dependency for this code.
+mvn package
 
 # Copy the result to extensions directory:
-cp target/ext-iv-quick-access-3.1.0.jar ~/.ImageViewer/extensions/
+cp target/ext-iv-quick-access-3.2.0.jar ~/.ImageViewer/extensions/
 ```
 
 ## Okay, it's installed, now how do I use it?
