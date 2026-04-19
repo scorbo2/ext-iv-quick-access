@@ -238,7 +238,6 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
         for (QuickAccessPanel quickAccessPanel : quickAccessPanels) {
             quickAccessPanel.setActionPanelColors();
             quickAccessPanel.refreshPreferredWidth(); // user may have changed the preferred quick panel width
-            quickAccessPanel.applyLafWorkaround(); // user may have changed color scheme
         }
     }
 
