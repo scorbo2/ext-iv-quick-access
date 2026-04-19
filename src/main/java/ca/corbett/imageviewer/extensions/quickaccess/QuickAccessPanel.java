@@ -23,6 +23,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.util.logging.Logger;
 
 /**
  * Provides a way to take one or more QuickMoveManager.TreeNode instances and turn them
@@ -34,6 +35,8 @@ import java.io.File;
  * @since ImageViewer 1.1
  */
 public final class QuickAccessPanel extends JPanel {
+
+    private static final Logger log = Logger.getLogger(QuickAccessPanel.class.getName());
 
     private final BlurLayerUI blurLayerUI;
     private final ActionPanel actionPanel;
@@ -84,8 +87,15 @@ public final class QuickAccessPanel extends JPanel {
             panelMinWidth = intProp.getValue();
         }
         else {
+            log.warning("Couldn't find integer property for quick access panel minimum width. " +
+                            "Using default value of " + panelMinWidth);
             panelMinWidth = 200; // fallback to default if something goes wrong
         }
+        invalidate();
+        revalidate();
+        repaint();
+        scrollPane.revalidate();
+        scrollPane.repaint();
     }
 
     /**
