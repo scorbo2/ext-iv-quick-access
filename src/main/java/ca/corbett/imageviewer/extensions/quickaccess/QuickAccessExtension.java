@@ -36,7 +36,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
 
     private static final String extInfoLocation = "/ca/corbett/imageviewer/extensions/quickaccess/extInfo.json";
     private static final String positionPropName = "Quick Move.Quick Access Extension.position";
-    public static final String panelWidthPropName = "Quick Move.Quick Access Extension.quickTagPanelWidth";
+    public static final String panelMinWidthPropName = "Quick Move.Quick Access Extension.quickTagPanelMinWidth";
 
     private static final String WRONG_MODE_WARNING = "Not available\nin ImageSet mode.";
 
@@ -131,7 +131,8 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
                                 false)
         );
 
-        props.add(new IntegerProperty(panelWidthPropName, "Panel width:", 200, 120, 300, 10));
+        props.add(new IntegerProperty(panelMinWidthPropName,
+                                      "Panel minimum width:", 200, 120, 300, 10));
 
         return props;
     }

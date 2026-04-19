@@ -8,6 +8,7 @@ import ca.corbett.extras.actionpanel.ActionPanel;
 import ca.corbett.extras.actionpanel.ColorOptions;
 import ca.corbett.extras.actionpanel.ColorTheme;
 import ca.corbett.extras.image.animation.BlurLayerUI;
+import ca.corbett.extras.properties.AbstractProperty;
 import ca.corbett.extras.properties.IntegerProperty;
 import ca.corbett.imageviewer.AppConfig;
 import ca.corbett.imageviewer.ImageOperationHandler;
@@ -44,7 +45,7 @@ public final class QuickAccessPanel extends JPanel {
     private final JScrollPane scrollPane;
     private final QuickAccessExtension extension;
 
-    private int preferredPanelWidth = 200; // customized via AppConfig
+    private int panelMinWidth = 200; // customized via AppConfig
 
     /**
      * Creates a new, empty QuickAccessPanel.
@@ -89,11 +90,14 @@ public final class QuickAccessPanel extends JPanel {
      * from application settings and updates the instance variable.
      */
     public void refreshPreferredWidth() {
-        IntegerProperty prop = (IntegerProperty)AppConfig
-            .getInstance()
-            .getPropertiesManager()
-            .getProperty(QuickAccessExtension.panelWidthPropName);
-        preferredPanelWidth = prop == null ? 200 : prop.getValue();
+        AbstractProperty prop = AppConfig.getInstance().getPropertiesManager()
+                                         .getProperty(QuickAccessExtension.panelMinWidthPropName);
+        if (prop instanceof IntegerProperty intProp) {
+            panelMinWidth = intProp.getValue();
+        }
+        else {
+            panelMinWidth = 200; // fallback to default if something goes wrong
+        }
     }
 
     /**
@@ -281,7 +285,8 @@ public final class QuickAccessPanel extends JPanel {
             @Override
             public Dimension getPreferredSize() {
                 Dimension superPref = super.getPreferredSize();
-                return new Dimension(preferredPanelWidth, superPref.height);
+                // Return the larger of the two (panel's width may be larger if contents are large):
+                return new Dimension(Math.max(panelMinWidth, superPref.width), superPref.height);
             }
         };
 
