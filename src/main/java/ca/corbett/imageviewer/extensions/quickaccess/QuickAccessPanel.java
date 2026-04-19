@@ -74,7 +74,7 @@ public final class QuickAccessPanel extends JPanel {
     }
 
     /**
-     * Looks up the currently-configured preferred width for quick tag panels
+     * Looks up the currently-configured minimum width for the Quick Access panel
      * from application settings and updates the instance variable.
      */
     public void refreshPreferredWidth() {
