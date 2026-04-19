@@ -23,7 +23,7 @@ left, and hit the "Uninstall" button in the top right. The application will prom
 ### Option 2: manual download and install:
 
 You can manually download the extension jar:
-[ext-iv-quick-access-3.0.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/3.0/ext-iv-quick-access-3.0.0.jar)
+[ext-iv-quick-access-3.1.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/3.0/ext-iv-quick-access-3.1.0.jar)
 
 Save it to your ~/.ImageViewer/extensions directory and restart the application.
 
@@ -37,7 +37,7 @@ cd ext-iv-quick-access
 maven package
 
 # Copy the result to extensions directory:
-cp target/ext-iv-quick-access-3.0.0.jar ~/.ImageViewer/extensions/
+cp target/ext-iv-quick-access-3.1.0.jar ~/.ImageViewer/extensions/
 ```
 
 ## Okay, it's installed, now how do I use it?
@@ -47,7 +47,7 @@ Destinations configuration dialog:
 
 ![Screenshot1](screenshot1.png "Screenshot 1")
 
-You can add directories here, recursively if needed, and even rename them for labelling purposes.
+You can add directories here, recursively if needed, and even rename them for labeling purposes.
 The Quick Access panel will show up by default on the left side of the main image panel (you can configure
 the location of the Quick Access panel in application settings):
 
@@ -62,6 +62,11 @@ You can easily get it back by revisiting the Quick Access Destinations configura
 Note that the hierarchy of destinations presented on the Quick Access panel doesn't have to match the
 hierarchy of directories on the file system! Using the Quick Access Destinations configuration dialog,
 you can create whatever hierarchy makes sense, regardless of how the file system is laid out.
+
+## More information
+
+- Project GitHub page: [ext-iv-quick-access](https://github.com/scorbo2/ext-iv-quick-access)
+- Project issues page: [ext-iv-quick-access issues](https://github.com/scorbo2/ext-iv-quick-access/issues)
 
 ## Requirements
 
