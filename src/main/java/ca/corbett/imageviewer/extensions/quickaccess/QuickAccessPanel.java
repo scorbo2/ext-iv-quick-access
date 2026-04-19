@@ -1,13 +1,14 @@
 package ca.corbett.imageviewer.extensions.quickaccess;
 
 import ca.corbett.extras.EnhancedAction;
-import ca.corbett.extras.LookAndFeelManager;
 import ca.corbett.extras.ScrollUtil;
 import ca.corbett.extras.actionpanel.ActionComponentType;
 import ca.corbett.extras.actionpanel.ActionPanel;
 import ca.corbett.extras.actionpanel.ColorOptions;
 import ca.corbett.extras.actionpanel.ColorTheme;
 import ca.corbett.extras.image.animation.BlurLayerUI;
+import ca.corbett.extras.properties.AbstractProperty;
+import ca.corbett.extras.properties.IntegerProperty;
 import ca.corbett.imageviewer.AppConfig;
 import ca.corbett.imageviewer.ImageOperationHandler;
 import ca.corbett.imageviewer.QuickMoveManager;
@@ -17,13 +18,12 @@ import javax.swing.JLayer;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.UIManager;
-import javax.swing.event.ChangeListener;
-import javax.swing.plaf.ColorUIResource;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.util.logging.Logger;
 
 /**
  * Provides a way to take one or more QuickMoveManager.TreeNode instances and turn them
@@ -36,11 +36,14 @@ import java.io.File;
  */
 public final class QuickAccessPanel extends JPanel {
 
-    private final ChangeListener lafListener;
+    private static final Logger log = Logger.getLogger(QuickAccessPanel.class.getName());
+
     private final BlurLayerUI blurLayerUI;
     private final ActionPanel actionPanel;
     private final JScrollPane scrollPane;
     private final QuickAccessExtension extension;
+
+    private int panelMinWidth = 200; // customized via AppConfig
 
     /**
      * Creates a new, empty QuickAccessPanel.
@@ -52,14 +55,8 @@ public final class QuickAccessPanel extends JPanel {
         blurLayerUI = new BlurLayerUI();
         actionPanel = buildActionPanel();
         scrollPane = ScrollUtil.buildScrollPane(new JLayer<>(actionPanel, blurLayerUI));
+        refreshPreferredWidth();
         setActionPanelColors();
-
-        // Set up a Look and Feel change listener so we can apply our workaround:
-        lafListener = e -> applyLafWorkaround();
-        LookAndFeelManager.addChangeListener(lafListener);
-
-        // And force the workaround here for immediate effect:
-        applyLafWorkaround();
 
         setLayout(new BorderLayout());
         add(scrollPane, BorderLayout.CENTER);
@@ -80,10 +77,31 @@ public final class QuickAccessPanel extends JPanel {
     }
 
     /**
+     * Looks up the currently-configured minimum width for the Quick Access panel
+     * from application settings and updates the instance variable.
+     */
+    public void refreshPreferredWidth() {
+        AbstractProperty prop = AppConfig.getInstance().getPropertiesManager()
+                                         .getProperty(QuickAccessExtension.panelMinWidthPropName);
+        if (prop instanceof IntegerProperty intProp) {
+            panelMinWidth = intProp.getValue();
+        }
+        else {
+            log.warning("Couldn't find integer property for quick access panel minimum width. " +
+                            "Using default value of " + panelMinWidth);
+            panelMinWidth = 200; // fallback to default if something goes wrong
+        }
+        invalidate();
+        revalidate();
+        repaint();
+        scrollPane.revalidate();
+        scrollPane.repaint();
+    }
+
+    /**
      * Invoke this when the panel is no longer needed.
      */
     public void dispose() {
-        LookAndFeelManager.removeChangeListener(lafListener);
         actionPanel.dispose();
     }
 
@@ -173,48 +191,6 @@ public final class QuickAccessPanel extends JPanel {
     }
 
     /**
-     * Works around an unfortunate bug in swing-extras regarding button colors in certain Look and Feels.
-     * The bug is that button borders are set to a very unpleasant default color for certain LaFs.
-     * This bug was not fixed before swing-extras 2.8 was released :(
-     */
-    public void applyLafWorkaround() {
-        // If a custom ActionPanel theme is in effect, tweak it:
-        Color borderColor;
-        ColorTheme appliedTheme = AppConfig.getInstance().getActionPanelTheme();
-        if (appliedTheme != null) {
-            borderColor = switch (appliedTheme) {
-                case DEFAULT, MATRIX, DARK, ICE -> Color.DARK_GRAY;
-                case LIGHT, GOT_THE_BLUES, SHADES_OF_GRAY -> Color.GRAY;
-                case HOT_DOG_STAND -> Color.YELLOW; // because hot dog stands are ugly
-            };
-        }
-
-        // If we're letting the Look and Feel decide our colors, then we'll
-        // decide based on whether the current LaF is dark or light.
-        // This isn't perfect, but it's better than the default:
-        else {
-            borderColor = LookAndFeelManager.isDark() ? Color.DARK_GRAY : Color.GRAY;
-        }
-
-        // Now overwrite the UIManager property in question:
-        // (This will have effects beyond our own action panel, but it is what it is
-        //  until this bug is properly addressed in swing-extras)
-        UIManager.put("Button.default.startBorderColor", new ColorUIResource(borderColor));
-
-        // Rebuild the action panel's UI without reloading contents from disk:
-        actionPanel.setAutoRebuildEnabled(false);
-        actionPanel.setAutoRebuildEnabled(true); // forces an immediate rebuild
-
-        // This is what I want to do instead of the above,
-        // but it won't work because of the way ActionPanel builds its buttons:
-        //SwingUtilities.updateComponentTreeUI(actionPanel);
-
-        invalidate();
-        revalidate();
-        repaint();
-    }
-
-    /**
      * Invoked recursively to process a node and its children.
      * Leaf nodes (nodes with no children) become individual buttons.
      * For a non-leaf node, any direct children that are leaves become
@@ -255,8 +231,22 @@ public final class QuickAccessPanel extends JPanel {
      * Invoked internally to build an ActionPanel and configure it for our use.
      */
     private ActionPanel buildActionPanel() {
+        // This is very weird, but calling setPreferredSize() on the ActionPanel itself
+        // prevents the scrollbar from ever showing up, even when the parent container is too
+        // small to show all contents. The only way I've found to make this work is
+        // to override ActionPanel itself and return the preferred size from there.
+        // All of this, by the way, is just so we can set our preferred width. Sigh.
+        ActionPanel panel = new ActionPanel() {
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension superPref = super.getPreferredSize();
+                // Return the larger of the two (panel's width may be larger if contents are large):
+                return new Dimension(Math.max(panelMinWidth, superPref.width), superPref.height);
+            }
+        };
+
+        // Now we can customize ActionPanel to get it to look the way we want it to.
         final int iconSize = 18;
-        ActionPanel panel = new ActionPanel();
         panel.setHeaderIconSize(iconSize);
         panel.getToolBarOptions().setIconSize(iconSize);
         panel.setActionComponentType(ActionComponentType.BUTTONS);
