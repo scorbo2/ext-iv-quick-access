@@ -1,7 +1,6 @@
 package ca.corbett.imageviewer.extensions.quickaccess;
 
 import ca.corbett.extras.EnhancedAction;
-import ca.corbett.extras.LookAndFeelManager;
 import ca.corbett.extras.ScrollUtil;
 import ca.corbett.extras.actionpanel.ActionComponentType;
 import ca.corbett.extras.actionpanel.ActionPanel;
@@ -17,9 +16,6 @@ import javax.swing.JLayer;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.UIManager;
-import javax.swing.event.ChangeListener;
-import javax.swing.plaf.ColorUIResource;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
@@ -36,7 +32,6 @@ import java.io.File;
  */
 public final class QuickAccessPanel extends JPanel {
 
-    private final ChangeListener lafListener;
     private final BlurLayerUI blurLayerUI;
     private final ActionPanel actionPanel;
     private final JScrollPane scrollPane;
@@ -53,13 +48,6 @@ public final class QuickAccessPanel extends JPanel {
         actionPanel = buildActionPanel();
         scrollPane = ScrollUtil.buildScrollPane(new JLayer<>(actionPanel, blurLayerUI));
         setActionPanelColors();
-
-        // Set up a Look and Feel change listener so we can apply our workaround:
-        lafListener = e -> applyLafWorkaround();
-        LookAndFeelManager.addChangeListener(lafListener);
-
-        // And force the workaround here for immediate effect:
-        applyLafWorkaround();
 
         setLayout(new BorderLayout());
         add(scrollPane, BorderLayout.CENTER);
@@ -83,7 +71,6 @@ public final class QuickAccessPanel extends JPanel {
      * Invoke this when the panel is no longer needed.
      */
     public void dispose() {
-        LookAndFeelManager.removeChangeListener(lafListener);
         actionPanel.dispose();
     }
 
@@ -170,48 +157,6 @@ public final class QuickAccessPanel extends JPanel {
         else {
             actionPanel.getColorOptions().useSystemDefaults();
         }
-    }
-
-    /**
-     * Works around an unfortunate bug in swing-extras regarding button colors in certain Look and Feels.
-     * The bug is that button borders are set to a very unpleasant default color for certain LaFs.
-     * This bug was not fixed before swing-extras 2.8 was released :(
-     */
-    public void applyLafWorkaround() {
-        // If a custom ActionPanel theme is in effect, tweak it:
-        Color borderColor;
-        ColorTheme appliedTheme = AppConfig.getInstance().getActionPanelTheme();
-        if (appliedTheme != null) {
-            borderColor = switch (appliedTheme) {
-                case DEFAULT, MATRIX, DARK, ICE -> Color.DARK_GRAY;
-                case LIGHT, GOT_THE_BLUES, SHADES_OF_GRAY -> Color.GRAY;
-                case HOT_DOG_STAND -> Color.YELLOW; // because hot dog stands are ugly
-            };
-        }
-
-        // If we're letting the Look and Feel decide our colors, then we'll
-        // decide based on whether the current LaF is dark or light.
-        // This isn't perfect, but it's better than the default:
-        else {
-            borderColor = LookAndFeelManager.isDark() ? Color.DARK_GRAY : Color.GRAY;
-        }
-
-        // Now overwrite the UIManager property in question:
-        // (This will have effects beyond our own action panel, but it is what it is
-        //  until this bug is properly addressed in swing-extras)
-        UIManager.put("Button.default.startBorderColor", new ColorUIResource(borderColor));
-
-        // Rebuild the action panel's UI without reloading contents from disk:
-        actionPanel.setAutoRebuildEnabled(false);
-        actionPanel.setAutoRebuildEnabled(true); // forces an immediate rebuild
-
-        // This is what I want to do instead of the above,
-        // but it won't work because of the way ActionPanel builds its buttons:
-        //SwingUtilities.updateComponentTreeUI(actionPanel);
-
-        invalidate();
-        revalidate();
-        repaint();
     }
 
     /**
