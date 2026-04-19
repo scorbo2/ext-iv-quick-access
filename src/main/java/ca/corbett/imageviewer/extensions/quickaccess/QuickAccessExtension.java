@@ -3,6 +3,7 @@ package ca.corbett.imageviewer.extensions.quickaccess;
 import ca.corbett.extensions.AppExtensionInfo;
 import ca.corbett.extras.properties.AbstractProperty;
 import ca.corbett.extras.properties.ComboProperty;
+import ca.corbett.extras.properties.IntegerProperty;
 import ca.corbett.imageviewer.AppConfig;
 import ca.corbett.imageviewer.QuickMoveManager;
 import ca.corbett.imageviewer.extensions.ImageViewerExtension;
@@ -35,6 +36,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
 
     private static final String extInfoLocation = "/ca/corbett/imageviewer/extensions/quickaccess/extInfo.json";
     private static final String positionPropName = "Quick Move.Quick Access Extension.position";
+    public static final String panelMinWidthPropName = "Quick Move.Quick Access Extension.quickTagPanelMinWidth";
 
     private static final String WRONG_MODE_WARNING = "Not available\nin ImageSet mode.";
 
@@ -118,7 +120,8 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
 
     @Override
     protected List<AbstractProperty> createConfigProperties() {
-        return List.of(
+        List<AbstractProperty> props = new ArrayList<>();
+        props.add(
             // We can't use EnumProperty because we don't support all enum options...
             // we only support Left and Right. So, use String-based combo instead.
             new ComboProperty<>(positionPropName,
@@ -127,6 +130,11 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
                                 0,
                                 false)
         );
+
+        props.add(new IntegerProperty(panelMinWidthPropName,
+                                      "Panel minimum width:", 200, 120, 300, 10));
+
+        return props;
     }
 
     /**
@@ -229,6 +237,7 @@ public class QuickAccessExtension extends ImageViewerExtension implements UIRelo
     public void reloadUI() {
         for (QuickAccessPanel quickAccessPanel : quickAccessPanels) {
             quickAccessPanel.setActionPanelColors();
+            quickAccessPanel.refreshPreferredWidth(); // user may have changed the preferred quick panel width
         }
     }
 
