@@ -8,6 +8,7 @@ import ca.corbett.extras.actionpanel.ActionPanel;
 import ca.corbett.extras.actionpanel.ColorOptions;
 import ca.corbett.extras.actionpanel.ColorTheme;
 import ca.corbett.extras.image.animation.BlurLayerUI;
+import ca.corbett.extras.properties.IntegerProperty;
 import ca.corbett.imageviewer.AppConfig;
 import ca.corbett.imageviewer.ImageOperationHandler;
 import ca.corbett.imageviewer.QuickMoveManager;
@@ -22,6 +23,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.plaf.ColorUIResource;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.io.File;
 
@@ -42,6 +44,8 @@ public final class QuickAccessPanel extends JPanel {
     private final JScrollPane scrollPane;
     private final QuickAccessExtension extension;
 
+    private int preferredPanelWidth = 200; // customized via AppConfig
+
     /**
      * Creates a new, empty QuickAccessPanel.
      */
@@ -52,6 +56,7 @@ public final class QuickAccessPanel extends JPanel {
         blurLayerUI = new BlurLayerUI();
         actionPanel = buildActionPanel();
         scrollPane = ScrollUtil.buildScrollPane(new JLayer<>(actionPanel, blurLayerUI));
+        refreshPreferredWidth();
         setActionPanelColors();
 
         // Set up a Look and Feel change listener so we can apply our workaround:
@@ -77,6 +82,18 @@ public final class QuickAccessPanel extends JPanel {
      */
     public boolean isBlurred() {
         return blurLayerUI.isBlurred();
+    }
+
+    /**
+     * Looks up the currently-configured preferred width for quick tag panels
+     * from application settings and updates the instance variable.
+     */
+    public void refreshPreferredWidth() {
+        IntegerProperty prop = (IntegerProperty)AppConfig
+            .getInstance()
+            .getPropertiesManager()
+            .getProperty(QuickAccessExtension.panelWidthPropName);
+        preferredPanelWidth = prop == null ? 200 : prop.getValue();
     }
 
     /**
@@ -255,8 +272,21 @@ public final class QuickAccessPanel extends JPanel {
      * Invoked internally to build an ActionPanel and configure it for our use.
      */
     private ActionPanel buildActionPanel() {
+        // This is very weird, but calling setPreferredSize() on the ActionPanel itself
+        // prevents the scrollbar from ever showing up, even when the parent container is too
+        // small to show all contents. The only way I've found to make this work is
+        // to override ActionPanel itself and return the preferred size from there.
+        // All of this, by the way, is just so we can set our preferred width. Sigh.
+        ActionPanel panel = new ActionPanel() {
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension superPref = super.getPreferredSize();
+                return new Dimension(preferredPanelWidth, superPref.height);
+            }
+        };
+
+        // Now we can customize ActionPanel to get it to look the way we want it to.
         final int iconSize = 18;
-        ActionPanel panel = new ActionPanel();
         panel.setHeaderIconSize(iconSize);
         panel.getToolBarOptions().setIconSize(iconSize);
         panel.setActionComponentType(ActionComponentType.BUTTONS);
